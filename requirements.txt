@@ -17,6 +17,7 @@ faiss-cpu==1.7.4
 PyPDF2==3.0.1
 python-pptx==0.6.21
 python-docx==0.8.11
+langchain-huggingface==0.0.6
 # uncomment to use huggingface llms
 # huggingface-hub==0.14.1
 
