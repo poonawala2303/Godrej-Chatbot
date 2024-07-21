@@ -1,7 +1,7 @@
 import streamlit as st
 from htmlTemplates import css, bot_template, user_template
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_huggingface.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.chains import create_retrieval_chain
