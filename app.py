@@ -407,8 +407,7 @@ def get_response(question):
     db = FAISS.load_local("vectorstore", embeddings, allow_dangerous_deserialization=True)
     system_prompt = (
         "Use the given context to answer the question. "
-        "If you don't know the answer, say you I cant answer the question right now as I didnt understand the question. "
-        "Use five sentence maximum and keep the answer detailed. "
+        "If you don't know the answer, say you don't know. "
         "Context: {context}"
     )
     prompt = ChatPromptTemplate.from_messages([
@@ -421,8 +420,8 @@ def get_response(question):
         temperature=0.5,
         max_tokens=None,
         timeout=None,
-        max_retries=2,
-        google_api_key="AIzaSyByAULS9YrPUqkrai_ZQn5-PPaOxBaTpcU"
+        max_retries=3,
+        google_api_key="AIzaSyByAULS9YrPUqkrai_ZQn5-PPaOxBaTpcU"  
     )
 
     retriever = db.as_retriever()
@@ -444,13 +443,13 @@ def handle_userinput(user_question):
             st.write(bot_template.replace("{{MSG}}", message["content"]), unsafe_allow_html=True)
 
 def main():
-    st.set_page_config(page_title="Convo AI", page_icon=":books:")
+    st.set_page_config(page_title="Convo AI: Chat with multiple documents", page_icon=":books:")
     st.write(css, unsafe_allow_html=True)
 
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
 
-    st.header("Welcome to Convo AI , Let's Chat !!")
+    st.header("Converse with your documents with Convo AI :books:")
 
     user_question = st.text_input("Ask a question about your documents:")
     if user_question:
@@ -458,38 +457,38 @@ def main():
 
     with st.sidebar:
         st.subheader("Your documents")
-        uploaded_files = st.file_uploader("Upload your PDFs, PPTs, or Word files here", accept_multiple_files=True, type=['pdf', 'pptx', 'docx'])
+        uploaded_files = st.file_uploader("Upload your documents (PDFs, PPTs, or DOCXs) and click on 'Analyze Documents'", accept_multiple_files=True, type=['pdf', 'pptx', 'docx'])
         
-        if st.button("Process"):
-            if uploaded_files:
-                for file in uploaded_files:
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=file.name[-5:]) as temp_file:
-                        temp_file.write(file.getvalue())
-                        temp_file_path = temp_file.name
-
+        if st.button("Analyze Documents"):
+            with st.spinner("Processing your Documents..."):
+                if uploaded_files:
                     text_final = ""
-                    
-                    if file.name.endswith('.pdf'):
-                        text = get_pdf_text(temp_file_path).strip()
-                    elif file.name.endswith('.pptx'):
-                        text = extract_text_from_pptx(temp_file_path).strip()
-                    elif file.name.endswith('.docx'):
-                        text = extract_text_from_docx(temp_file_path).strip()
-                    else:
-                        text = ""
+                    for file in uploaded_files:
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=file.name[-5:]) as temp_file:
+                            temp_file.write(file.getvalue())
+                            temp_file_path = temp_file.name
 
-                    text_final += text
-                    os.unlink(temp_file_path)  # Delete the temporary file
+                        if file.name.endswith('.pdf'):
+                            text = get_pdf_text(temp_file_path).strip()
+                        elif file.name.endswith('.pptx'):
+                            text = extract_text_from_pptx(temp_file_path).strip()
+                        elif file.name.endswith('.docx'):
+                            text = extract_text_from_docx(temp_file_path).strip()
+                        else:
+                            text = ""
 
-                text_splitter = RecursiveCharacterTextSplitter(chunk_size=900, chunk_overlap=100)
-                texts = text_splitter.split_text(text_final)
+                        text_final += text
+                        os.unlink(temp_file_path)  # Delete the temporary file
 
-                db = FAISS.from_texts(texts, embeddings)
-                db.save_local("vectorstore")
+                    text_splitter = RecursiveCharacterTextSplitter(chunk_size=900, chunk_overlap=100)
+                    texts = text_splitter.split_text(text_final)
 
-                st.success("Documents processed successfully!")
-            else:
-                st.warning("Please upload at least one file.")
+                    db = FAISS.from_texts(texts, embeddings)
+                    db.save_local("vectorstore")
+
+                    st.success("Documents processed successfully!")
+                else:
+                    st.warning("Please upload at least one file.")
 
 if __name__ == "__main__":
     main()
